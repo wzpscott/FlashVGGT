@@ -7,7 +7,7 @@
     <a href="https://www.danxurgb.net/">Dan Xu</a>
   </p>
 
-  <h3 align="center"><a href="https://arxiv.org/pdf/2512.01540">Paper</a> | <a href="https://arxiv.org/abs/2512.01540">arXiv</a> | <a href="https://wzpscott.github.io/flashvggt_page/">Project Page</a>  | <a href="https://huggingface.co/papers/xxxx">HuggingFace (coming soon)</a> </h3>
+  <h3 align="center"><a href="https://arxiv.org/pdf/2512.01540">Paper</a> | <a href="https://arxiv.org/abs/2512.01540">arXiv</a> | <a href="https://wzpscott.github.io/flashvggt_page/">Project Page</a>  | <a href="https://huggingface.co/papers/2512.01540">HuggingFace (coming soon)</a> </h3>
   <div align="center"></div>
 </p>
 
