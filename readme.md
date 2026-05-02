@@ -17,14 +17,14 @@
 </p>
 
 <p align="center">
-TLDR: Accelerate VGGT with more efficient global attention for ~10x faster inference on 1K images and scaling to 3K+ images.
+TLDR: Accelerate VGGT with compressed global attention for ~10x faster inference on 1K images and scaling to 3K+ images.
 </p>
 <br>
 
-# Updates 
+## Updates 
 - [05/02/2026] Code and checkpoints for single-forward and streaming inference are released.
 
-# Overview
+## Overview
 <p align="center">
   <a href="">
     <img src="./assets/framework.png"Logo" width="95%">
@@ -32,8 +32,8 @@ TLDR: Accelerate VGGT with more efficient global attention for ~10x faster infer
 </p>
 Instead of applying dense global attention across all tokens, FlashVGGT compresses spatial information from each frame into a compact set of descriptor tokens. Global attention is then computed as cross-attention between the full set of image tokens and this smaller descriptor set, significantly reducing computational overhead. Moreover, the compactness of the descriptors enables online inference over long sequences via a chunk-recursive mechanism that reuses cached descriptors from previous chunks. 
 
-# Installation
-## Environment Setup
+## Installation
+### Environment Setup
 First, you should clone the repository and create an anaconda environment.
 ```bash
 git clone https://github.com/wzpscott/FlashVGGT.git
@@ -52,7 +52,7 @@ You can also install FlashVGGT as a package.
 pip install -e . --no-deps
 ```
 
-## Checkpoints
+### Checkpoints
 You can download the checkpoints for single-forward and streaming variants of FlashVGGT from the [HuggingFace](https://huggingface.co/ZipW/FlashVGGT). You should download the checkpoints to the `ckpts` folder.
 
 ```bash
@@ -66,12 +66,12 @@ huggingface-cli download ZipW/FlashVGGT flashvggt.pt --local-dir ckpts
 huggingface-cli download ZipW/FlashVGGT flashvggt_stream.pt --local-dir ckpts
 ```
 
-# Quick Start
+## Quick Start
 We provide a demo script `demo_o3d.py` to visualize the 3D reconstruction results as point clouds using Open3D. The output is a `.ply` file that can be easily visualized with most 3D viewers.
 
 ### Usage Examples
 
-**1. Standard FlashVGGT Inference:**
+#### Standard FlashVGGT Inference:
 To run the standard FlashVGGT model on a folder of images:
 ```bash
 python demo_o3d.py \
@@ -80,7 +80,7 @@ python demo_o3d.py \
     --output_dir outputs/
 ```
 
-**2. Streaming FlashVGGT Inference:**
+#### Streaming FlashVGGT Inference:
 To run the streaming variant (FlashVGGTStream) which is optimized for longer sequences:
 ```bash
 python demo_o3d.py \
@@ -104,7 +104,7 @@ python demo_o3d.py \
 
 </details>
 
-# Acknowledgements
+## Acknowledgements
 Our code is based on the following awesome repositories:
 - [VGGT](https://github.com/facebookresearch/vggt)
 - [FastVGGT](https://github.com/mystorm16/FastVGGT)
@@ -114,7 +114,7 @@ Our code is based on the following awesome repositories:
 
 We thank the authors for releasing their code!
 
-# Citation
+## Citation
 If you find our work useful, please cite:
 ```bibtex
 @inproceedings{wang2025flashvggt,
