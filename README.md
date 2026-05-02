@@ -20,6 +20,7 @@ TL;DR: Accelerate VGGT by spatially resampling keys and values for global attent
 <br>
 
 ## Updates 
+- [05/02/2026] Training code for FlashVGGT (both single-forward and streaming settings) is released.
 - [05/02/2026] Code and checkpoints for single-forward and streaming inference are released.
 
 ## Overview
@@ -101,6 +102,11 @@ python demo_o3d.py \
 - `--keyframe_every`: Keyframe interval for the standard FlashVGGT model. Default is `200`.
 
 </details>
+
+## Training
+
+The training code for FlashVGGT (both single-forward and streaming settings) is available in the `training` branch. Please refer to the [Training README](https://github.com/wzpscott/FlashVGGT/blob/training/training/README.md) for detailed instructions on installation, dataset preparation, and training commands.
+
 
 ## Acknowledgements
 Our code is based on the following awesome repositories:
