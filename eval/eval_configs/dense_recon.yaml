@@ -1,0 +1,43 @@
+project: flash-vggt
+ckpt_path: ${base_dir}/ckpts/flashvggt.pt
+num_frames: 50
+num_seq: 10
+skip_frame_options: [1]
+seed: 42
+
+base_dir: /home/zwang253/workspace/scale-up-vggt/FlashVGGT
+log_dir: ${base_dir}/eval/logs/dense_recon
+data_dir: ${base_dir}/data/val
+save_name: dense_recon
+
+hydra:
+  run:
+    dir: ${log_dir}
+
+data:
+  common:
+      skip_frame_options: ${skip_frame_options}
+      inplace_batching: False
+      training: False
+      aspect_ratio_range: null
+      scale_range: null
+      image_aug: null
+  datasets:
+    - _target_: data.datasets.seven_scenes.SevenScenesDataset
+      name: "7 Scenes"
+      data_dir: ${data_dir}/7scenes
+      frame_sample_strategy: sequential
+      override_length: null
+    - _target_: data.datasets.nrgbd.NRGBDDataset
+      name: "N-RGBD"
+      data_dir: ${data_dir}/nrgbd
+      frame_sample_strategy: sequential
+      override_length: null
+    - _target_: data.datasets.scannet.ScanNetDataset 
+      name: "ScanNet"
+      data_dir: ${data_dir}/scannet/full_dataset
+      frame_sample_strategy: sequential
+      override_length: 50
+metric:
+  _target_: metric.MultiMetric
+  metrics: ["depth", "pose", "point"]
