@@ -4,6 +4,7 @@ num_frames: 50
 num_seq: 10
 skip_frame_options: [1]
 seed: 42
+kv_downfactor: 4
 
 base_dir: /home/zwang253/workspace/scale-up-vggt/FlashVGGT
 log_dir: ${base_dir}/eval/logs/dense_recon

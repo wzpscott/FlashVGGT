@@ -54,7 +54,7 @@ def eval(cfg: DictConfig):
     #     assert set(columns) == set(eval_df.columns), "Columns do not match"
 
     # set up models
-    model = FlashVGGT(enable_point=False, enable_track=False)
+    model = FlashVGGT(kv_downfactor=cfg.kv_downfactor)
     model.load_ckpt(cfg.ckpt_path)
 
     model.eval()
