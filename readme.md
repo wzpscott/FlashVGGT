@@ -8,16 +8,14 @@
   </p>
 
   <div align="center">
-    <a href="https://arxiv.org/pdf/2512.01540">
-      <img src="https://img.shields.io/badge/Paper-FlashVGGT-blue" alt="Paper PDF">
-    </a>
+    <a href="https://arxiv.org/pdf/2512.01540"><img src="https://img.shields.io/badge/Paper-FlashVGGT-blue" alt="Paper PDF"></a>
     <a href="https://arxiv.org/abs/2512.01540"><img src="https://img.shields.io/badge/arXiv-2512.01540-b31b1b" alt="arXiv"></a>
     <a href="https://wzpscott.github.io/flashvggt_page/"><img src="https://img.shields.io/badge/Project-Website-green?labelColor=gray" alt="Project | Website"></a>
   </div>
 </p>
 
 <p align="center">
-TLDR: Accelerate VGGT with compressed global attention for ~10x faster inference on 1K images and scaling to 3K+ images.
+TL;DR: Accelerate VGGT by spatially resampling keys and values for global attention.
 </p>
 <br>
 
