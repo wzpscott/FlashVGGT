@@ -108,6 +108,17 @@ python demo_o3d.py \
 
 The training code for FlashVGGT (both single-forward and streaming settings) is available in the `training` branch. Please refer to the [Training README](https://github.com/wzpscott/FlashVGGT/blob/training/training/README.md) for detailed instructions on installation, dataset preparation, and training commands.
 
+## Evaluation
+The evaluation code is based on [MonST3R](https://github.com/Junyi42/monst3r/blob/main/data/evaluation_script.md) and [CUT3R](https://github.com/CUT3R/CUT3R). 
+
+You can use the following command to evaluate the model.
+```bash
+python eval.py --config-name dense_recon num_frames=100 save_name=dense_recon_100
+python eval.py --config-name dense_recon num_frames=500 save_name=dense_recon_500
+python eval.py --config-name dense_recon num_frames=1000 save_name=dense_recon_1000
+```
+
+The evaluation results are saved in the `eval/logs/dense_recon` folder.
 
 ## Acknowledgements
 Our code is based on the following awesome repositories:
