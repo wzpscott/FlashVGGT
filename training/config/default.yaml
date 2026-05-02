@@ -1,0 +1,171 @@
+defaults:
+  - default_dataset.yaml
+  - _self_
+
+exp_name: flashvggt
+mode: train
+device: cuda
+max_iterations: 10000
+img_size: 518
+num_workers: 8
+seed_value: 42
+patch_size: 14
+embed_dim: 1024
+patch_embed: dinov2_vitl14_reg
+kv_downfactor: 3
+keyframe_every: 10
+max_img_per_gpu: 48
+
+data:
+  train:
+    _target_: data.dynamic_dataloader.DynamicTorchDataset
+    num_workers: ${num_workers}
+    max_img_per_gpu: ${max_img_per_gpu}
+    common_config:
+      img_size: ${img_size}
+      patch_size: ${patch_size}
+      max_img_per_gpu: ${max_img_per_gpu}
+      img_nums: [2, 24]
+      debug: False
+    dataset:
+      _target_: data.composed_dataset.ComposedDataset
+      dataset_configs:
+        - _target_: data.datasets.blendedmvs.BlendedMVSDataset
+          BLENDEDMVS_DIR: /home/zwang253/workspace/scale-up-vggt/FlashVGGT/data/training/blendedmvs
+          len_train: 2000
+        - _target_: data.datasets.mvs_synth.MVSSynthDataset
+          MVSSYNTH_DIR: /home/zwang253/workspace/scale-up-vggt/FlashVGGT/data/training/mvs_synth
+          len_train: 1000
+        - _target_: data.datasets.scannet.ScanNetDataset
+          SCANNET_DIR: /home/zwang253/workspace/scale-up-vggt/FlashVGGT/data/training/scannet/full_dataset
+          len_train: 10000
+        - _target_: data.datasets.vkitti.VKittiDataset
+          VKitti_DIR: /home/zwang253/workspace/scale-up-vggt/FlashVGGT/data/training/vkitti
+          len_train: 1000
+        - _target_: data.datasets.mapillary.MapillaryDataset
+          MAPILLARY_DIR: /home/zwang253/workspace/scale-up-vggt/FlashVGGT/data/training/mapillary
+          len_train: 10000
+
+logging:
+  log_dir: /home/zwang253/workspace/scale-up-vggt/FlashVGGT/logs/training/${exp_name}
+  log_visuals: True
+  log_freq: 10
+  console_log_freq: 10
+  backend_log_freq: 10
+  log_level_primary: DEBUG
+  log_level_secondary: WARNING
+  all_ranks: False
+  log_visual_frequency:
+    train: 1000
+  visuals_keys_to_log:
+    train:
+      keys_to_log:
+        - images
+        - dense_points
+  writer:
+    _target_: train_utils.wandb_writer.WandbLogger
+    project: flashvggt_official
+    run_name: ${exp_name}
+    dir: ${logging.log_dir}
+    mode: online
+    tags: []
+  scalar_keys_to_log:
+    train:
+      keys_to_log:
+        - loss_objective
+        - loss_camera
+        - loss_T
+        - loss_R
+        - loss_FL
+        - loss_conf_depth
+        - loss_reg_depth
+        - loss_grad_depth
+        - loss_conf_point
+        - loss_reg_point
+        - loss_grad_point
+
+checkpoint:
+  save_dir: ${logging.log_dir}/ckpts
+  save_freq: 10000
+  # Pretrained VGGT (or compatible) weights: used only when resume_checkpoint_path is null.
+  # Loads weights with strict=False, does not load optimizer, starts training at step 0.
+  vggt_checkpoint_path: /home/zwang253/workspace/scale-up-vggt/FlashVGGT/ckpts/vggt.pt
+  # Full Key3R training checkpoint: if set, takes precedence over vggt_checkpoint_path; strict=True.
+  resume_checkpoint_path: null
+  strict: False
+
+loss:
+  _target_: loss.MultitaskLoss
+  camera:
+    weight: 5.0
+    loss_type: l1
+  depth:
+    weight: 1.0
+    gamma: 1.0
+    alpha: 0.2
+    valid_range: 0.98
+    gradient_loss_fn: "grad"
+  # point:
+  #   weight: 1.0
+  #   gamma: 1.0
+  #   alpha: 0.2
+  #   valid_range: 0.98
+  #   gradient_loss_fn: "normal"
+
+optim:
+  param_group_modifiers: False
+  optimizer:
+    _target_: torch.optim.AdamW
+    lr: 3e-5
+    weight_decay: 0.05
+  frozen_module_names:
+    - "*aggregator.camera_token"
+    - "*aggregator.register_token"
+    - "*aggregator.patch_embed*"
+    - "*aggregator.frame_blocks*"
+    - "*camera_head*"
+    - "*depth_head*"
+    # - "*point_head*"
+
+  amp:
+    enabled: True
+    amp_dtype: bfloat16
+  gradient_clip:
+    _target_: train_utils.gradient_clip.GradientClipper
+    configs:
+      - module_name: ["aggregator"]
+        max_norm: 1.0
+        norm_type: 2
+      - module_name: ["depth_head"]
+        max_norm: 1.0
+        norm_type: 2
+        # - module_name: ["point_head"]
+        #   max_norm: 1.0
+        #   norm_type: 2
+      - module_name: ["camera_head"]
+        max_norm: 1.0
+        norm_type: 2
+  lr_schedule:
+    type: cosine
+    warmup_ratio: 0.05
+    warmup_start_lr: 1e-8
+    min_lr: 1e-8
+
+model:
+  _target_: flashvggt.models.flash_vggt.FlashVGGT
+  img_size: ${img_size}
+  patch_size: ${patch_size}
+  embed_dim: ${embed_dim}
+  enable_camera: True
+  enable_depth: True
+  enable_point: False
+  enable_track: False
+  kv_downfactor: ${kv_downfactor}
+  keyframe_every: ${keyframe_every}
+accelerate:
+  mixed_precision: bf16
+
+cuda:
+  cudnn_deterministic: False
+  cudnn_benchmark: False
+  allow_tf32: True
