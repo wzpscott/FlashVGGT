@@ -1,0 +1,21 @@
+torch==2.3.1
+torchvision==0.18.1
+numpy==1.26.1
+torch_kmeans
+Pillow
+huggingface_hub
+einops
+safetensors
+tqdm
+open3d
+# for training
+kornia
+hydra-core
+accelerate
+wandb[media]
+iopath
+wcmatch
+fvcore
+opencv-python
+matplotlib
+plyfile

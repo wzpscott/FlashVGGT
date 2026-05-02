@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "flashvggt"
+version = "0.1.0"
+description = "FlashVGGT: Efficient and Scalable Visual Geometry Transformers with Compressed Descriptor Attention"
+readme = "README.md"
+requires-python = ">=3.9"
+
+dependencies = [
+    "numpy",
+    "scipy",
+    "einops",
+    "tqdm",
+    "huggingface_hub",
+    "safetensors",
+    "hydra-core",
+    "accelerate",
+    "wandb[media]",
+    "opencv-python",
+    "matplotlib",
+    "open3d",
+    "plyfile",
+    # # You should install these dependencies based on CUDA version
+    # "torch>=2.0.0",
+    # "torchvision>=0.15.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+exclude = [
+    "outputs*", 
+    "ckpts*",
+]
+include = ["flashvggt", "flashvggt_stream"]
