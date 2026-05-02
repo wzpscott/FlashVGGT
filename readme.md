@@ -7,8 +7,13 @@
     <a href="https://www.danxurgb.net/">Dan Xu</a>
   </p>
 
-  <h3 align="center"><a href="https://arxiv.org/pdf/2512.01540">Paper</a> | <a href="https://arxiv.org/abs/2512.01540">arXiv</a> | <a href="https://wzpscott.github.io/flashvggt_page/">Project Page</a>  | <a href="https://huggingface.co/papers/2512.01540">HuggingFace</a> </h3>
-  <div align="center"></div>
+  <div align="center">
+    <a href="https://arxiv.org/pdf/2512.01540" target="_blank" rel="noopener noreferrer">
+      <img src="https://img.shields.io/badge/Paper-FlashVGGT-blue" alt="Paper PDF">
+    </a>
+    <a href="https://arxiv.org/abs/2512.01540"><img src="https://img.shields.io/badge/arXiv-2512.01540-b31b1b" alt="arXiv"></a>
+    <a href="https://wzpscott.github.io/flashvggt_page/"><img src="https://img.shields.io/badge/Project-Website-green?labelColor=gray" alt="Project | Website"></a>
+  </div>
 </p>
 
 <p align="center">
@@ -98,3 +103,24 @@ python demo_o3d.py \
 - `--keyframe_every`: Keyframe interval for the standard FlashVGGT model. Default is `200`.
 
 </details>
+
+# Acknowledgements
+Our code is based on the following awesome repositories:
+- [VGGT](https://github.com/facebookresearch/vggt)
+- [FastVGGT](https://github.com/mystorm16/FastVGGT)
+- [StreamVGGT](https://github.com/wzzheng/streamvggt)
+- [CUT3R](https://github.com/CUT3R/CUT3R)
+- [TTT3R](https://github.com/Inception3D/TTT3R)
+
+We thank the authors for releasing their code!
+
+# Citation
+If you find our work useful, please cite:
+```bibtex
+@inproceedings{wang2025flashvggt,
+  title={FlashVGGT: Efficient and Scalable Visual Geometry Transformers with Compressed Descriptor Attention},
+  author={Wang, Zipeng and Xu, Dan},
+  journal={Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition},
+  year={2026}
+}
+```
