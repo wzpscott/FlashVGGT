@@ -1,6 +1,7 @@
 <p align="center">
 
   <h1 align="center">FlashVGGT: Efficient and Scalable Visual Geometry Transformers with Compressed Descriptor Attention</h1>
+  <h3 align="center">CVPR 2026</h3>
   <p align="center">
     <a href="https://wzpscott.github.io/">Zipeng Wang</a>
     ·
@@ -15,7 +16,7 @@
 </p>
 
 <p align="center">
-TL;DR: Accelerate VGGT by spatially resampling keys and values for global attention.
+  <strong>TL;DR:</strong> <em>Accelerate VGGT by spatially resampling keys and values for global attention.</em>
 </p>
 <br>
 
