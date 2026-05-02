@@ -21,6 +21,7 @@
 <br>
 
 ## Updates 
+- [05/02/2026] Evaluation code is released.
 - [05/02/2026] Training code for FlashVGGT (both single-forward and streaming settings) is released.
 - [05/02/2026] Code and checkpoints for single-forward and streaming inference are released.
 
