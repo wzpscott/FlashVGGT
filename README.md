@@ -16,9 +16,9 @@
 </p>
 
 
-<p align="center">
+<!-- <p align="center">
   <img src="./assets/rubble_gif.gif" width="100%" alt="FlashVGGT Demo">
-</p>
+</p> -->
 
 <p align="center">
   <strong>TL;DR:</strong> <em>Accelerate VGGT by spatially resampling keys and values for global attention.</em>
