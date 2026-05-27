@@ -16,11 +16,11 @@
 </p>
 
 
-<p align="center">
+<!-- <p align="center">
   <a href="https://github.com/wzpscott/FlashVGGT/raw/main/assets/demo.mov">
     <img src="./assets/demo_thumbnail.png" width="100%" alt="Watch the video">
   </a>
-</p>
+</p> -->
 
 <p align="center">
   <strong>TL;DR:</strong> <em>Accelerate VGGT by spatially resampling keys and values for global attention.</em>
