@@ -17,7 +17,9 @@
 
 
 <p align="center">
-  <video src="https://github.com/wzpscott/FlashVGGT/raw/main/assets/video.mov" width="100%" controls loop muted></video>
+  <a href="https://github.com/wzpscott/FlashVGGT/raw/main/assets/demo.mov">
+    <img src="./assets/demo_thumbnail.png" width="100%" alt="Watch the video">
+  </a>
 </p>
 
 <p align="center">
