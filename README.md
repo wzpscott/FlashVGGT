@@ -16,6 +16,10 @@
 </p>
 
 
+
+https://github.com/user-attachments/assets/6297a0fd-d70f-4092-b24d-90c724fdbd85
+
+
 <!-- <p align="center">
   <img src="./assets/rubble_gif.gif" width="100%" alt="FlashVGGT Demo">
 </p> -->
