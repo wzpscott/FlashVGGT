@@ -17,7 +17,7 @@
 
 
 <p align="center">
-  <video src="./assets/video.mov" width="100%" controls autoplay loop muted></video>
+  <video src="https://github.com/wzpscott/FlashVGGT/raw/main/assets/video.mov" width="100%" controls loop muted></video>
 </p>
 
 <p align="center">
