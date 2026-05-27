@@ -15,6 +15,11 @@
   </div>
 </p>
 
+
+<p align="center">
+  <video src="./assets/video.mov" width="100%" controls autoplay loop muted></video>
+</p>
+
 <p align="center">
   <strong>TL;DR:</strong> <em>Accelerate VGGT by spatially resampling keys and values for global attention.</em>
 </p>
