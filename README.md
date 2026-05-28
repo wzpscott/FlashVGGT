@@ -18,15 +18,6 @@
 
 https://github.com/user-attachments/assets/3347dbe0-f3c0-48d3-9611-1516b59fbf94
 
-
-
-
-
-
-<!-- <p align="center">
-  <img src="./assets/rubble_gif.gif" width="100%" alt="FlashVGGT Demo">
-</p> -->
-
 <p align="center">
   <strong>TL;DR:</strong> <em>Accelerate VGGT by spatially resampling keys and values for global attention.</em>
 </p>
