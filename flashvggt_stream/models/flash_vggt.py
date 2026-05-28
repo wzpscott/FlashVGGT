@@ -22,9 +22,11 @@ class FlashVGGTStream(nn.Module, PyTorchModelHubMixin):
         embed_dim=1024,
         enable_camera=True, 
         enable_depth=True, 
-        kv_downfactor: int = 4
+        kv_downfactor: int = 3,
+        chunk_sizes: list = [2, 4, 6, 12, 24]
     ):
         super().__init__()
+        self.chunk_sizes = chunk_sizes
 
         self.aggregator = Aggregator(
             img_size=img_size, 
@@ -36,7 +38,7 @@ class FlashVGGTStream(nn.Module, PyTorchModelHubMixin):
         self.camera_head = CameraHead(dim_in=2 * embed_dim) if enable_camera else None
         self.depth_head = DPTHead(dim_in=2 * embed_dim, output_dim=2, activation="exp", conf_activation="expp1") if enable_depth else None
 
-    def forward(self, images: torch.Tensor, chunk_size: int = 100):
+    def forward(self, images: torch.Tensor, chunk_size: int = 12):
         """
         Forward pass of the VGGT model.
 
@@ -58,21 +60,28 @@ class FlashVGGTStream(nn.Module, PyTorchModelHubMixin):
             images = images.unsqueeze(0)
             
         B, S, C_in, H, W = images.shape
-        if chunk_size is None or chunk_size > S:
-            chunk_size = S
+        if self.training:
+            import random
+            chunk_size = random.choice(self.chunk_sizes)
+            chunk_size = min(chunk_size, S)
+        else:
+            if chunk_size is None or chunk_size > S:
+                chunk_size = S
             
         predictions = {}
         all_pose_tokens = []
         all_depth = []
         all_depth_conf = []
 
-        self.aggregator.apply(lambda m: m.clear_kv_cache() if hasattr(m, 'clear_kv_cache') else None)
+        kv_cache_list = None
 
-        pbar = trange(0, images.shape[1], chunk_size)
+        pbar = trange(0, images.shape[1], chunk_size) if not self.training else range(0, images.shape[1], chunk_size)
         for i in pbar:
             is_first_chunk = (i == 0)
             chunk_images = images[:, i:i+chunk_size]
-            aggregated_tokens_list, patch_start_idx = self.aggregator(chunk_images, is_first_chunk=is_first_chunk)
+            aggregated_tokens_list, patch_start_idx, kv_cache_list = self.aggregator(
+                chunk_images, is_first_chunk=is_first_chunk, kv_cache_list=kv_cache_list
+            )
 
             with torch.cuda.amp.autocast(enabled=False):
                 if self.camera_head is not None:
@@ -82,16 +91,21 @@ class FlashVGGTStream(nn.Module, PyTorchModelHubMixin):
                     depth, depth_conf = self.depth_head(
                         aggregated_tokens_list, images=chunk_images, patch_start_idx=patch_start_idx
                     )
-                    all_depth.append(depth.cpu())
-                    all_depth_conf.append(depth_conf.cpu())
+                    if not self.training:
+                        depth = depth.cpu()
+                        depth_conf = depth_conf.cpu()
+                    all_depth.append(depth)
+                    all_depth_conf.append(depth_conf)
 
-            pbar.set_description(f"Memory usage: {torch.cuda.memory_allocated() / 1024 ** 3:.2f} GB")
+            if not self.training:
+                pbar.set_description(f"Memory usage: {torch.cuda.memory_allocated() / 1024 ** 3:.2f} GB")
 
         if self.camera_head is not None:
             with torch.amp.autocast("cuda", enabled=False):
                 pose_tokens = torch.cat(all_pose_tokens, dim=1) # [B, S, 1, C]
                 pose_enc_list = self.camera_head([pose_tokens])
                 predictions["pose_enc"] = pose_enc_list[-1]  # pose encoding of the last iteration
+                predictions["pose_enc_list"] = pose_enc_list
 
         if self.depth_head is not None:
             predictions["depth"] = torch.cat(all_depth, dim=1)

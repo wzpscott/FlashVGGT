@@ -9,7 +9,7 @@
 
 import logging
 import os
-from typing import Callable, List, Any, Tuple, Dict
+from typing import Callable, List, Any, Tuple, Dict, Union
 import warnings
 
 import torch
@@ -78,14 +78,20 @@ class Block(nn.Module):
 
         self.sample_drop_ratio = drop_path
 
-    def forward(self, x: Tensor, pos=None, pH: int = None, pW: int = None, patch_start_idx: int = None, is_first_chunk: bool = False, memory_drop_rate: int = 1) -> Tensor:
+    def forward(self, x: Tensor, pos=None, pH: int = None, pW: int = None, patch_start_idx: int = None, is_first_chunk: bool = False, memory_drop_rate: int = 1, kv_cache=None, return_kv_cache: bool = False) -> Union[Tensor, Tuple[Tensor, Any]]:
+        new_kv_cache = None
+
         def attn_residual_func(x: Tensor, pos=None) -> Tensor:
-            return self.ls1(self.attn(self.norm1(x), pos=pos, pH=pH, pW=pW, patch_start_idx=patch_start_idx, is_first_chunk=is_first_chunk, memory_drop_rate=memory_drop_rate))
+            nonlocal new_kv_cache
+            attn_out, new_kv_cache = self.attn(self.norm1(x), pos=pos, pH=pH, pW=pW, patch_start_idx=patch_start_idx, is_first_chunk=is_first_chunk, memory_drop_rate=memory_drop_rate, kv_cache=kv_cache)
+            return self.ls1(attn_out)
 
         def ffn_residual_func(x: Tensor) -> Tensor:
             return self.ls2(self.mlp(self.norm2(x)))
 
         if self.training and self.sample_drop_ratio > 0.1:
+            if kv_cache is not None:
+                raise ValueError("KV caching is incompatible with stochastic depth dropping.")
             # the overhead is compensated only for a drop path rate larger than 0.1
             x = drop_add_residual_stochastic_depth(
                 x, pos=pos, residual_func=attn_residual_func, sample_drop_ratio=self.sample_drop_ratio
@@ -94,11 +100,16 @@ class Block(nn.Module):
                 x, residual_func=ffn_residual_func, sample_drop_ratio=self.sample_drop_ratio
             )
         elif self.training and self.sample_drop_ratio > 0.0:
+            if kv_cache is not None:
+                raise ValueError("KV caching is incompatible with stochastic depth dropping.")
             x = x + self.drop_path1(attn_residual_func(x, pos=pos))
             x = x + self.drop_path1(ffn_residual_func(x))  # FIXME: drop_path2
         else:
             x = x + attn_residual_func(x, pos=pos)
             x = x + ffn_residual_func(x)
+            
+        if return_kv_cache:
+            return x, new_kv_cache
         return x
 
 

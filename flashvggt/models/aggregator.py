@@ -70,13 +70,17 @@ class Aggregator(nn.Module):
         rope_freq=100,
         init_values=0.01,
         intermediate_layer_idx=[4, 11, 17, 23],
-        kv_downfactor: int = 1,
-        keyframe_every: int = 10,
+        kv_downfactor: int = 3,
+        keyframe_every: int = 100,
+        global_start_idx: int = 9,
+        global_end_idx: int = 19,
     ):
         super().__init__()
 
         self.kv_downfactor = kv_downfactor
         self.keyframe_every = keyframe_every
+        self.global_start_idx = global_start_idx
+        self.global_end_idx = global_end_idx
 
         self.__build_patch_embed__(patch_embed, img_size, patch_size, num_register_tokens, embed_dim=embed_dim)
 
@@ -114,9 +118,9 @@ class Aggregator(nn.Module):
                     init_values=init_values,
                     qk_norm=qk_norm,
                     rope=self.rope,
-                    kv_downfactor=kv_downfactor,
+                    kv_downfactor=kv_downfactor if idx >= global_start_idx and idx <= global_end_idx else 1,
                 )
-                for _ in range(depth)
+                for idx in range(depth)
             ]
         )
 
@@ -256,9 +260,14 @@ class Aggregator(nn.Module):
                         tokens, B, S, P, C, frame_idx, pos=pos
                     )
                 elif attn_type == "global":
-                    tokens, global_idx, global_intermediates = self._process_global_attention(
-                        tokens, B, S, P, C, global_idx, pos=pos, pH=pH, pW=pW, patch_start_idx=self.patch_start_idx, keyframe_indices=keyframe_indices
-                    )
+                    if self.global_start_idx <= global_idx <= self.global_end_idx:
+                        tokens, global_idx, global_intermediates = self._process_global_attention(
+                            tokens, B, S, P, C, global_idx, pos=pos, pH=pH, pW=pW, patch_start_idx=self.patch_start_idx, keyframe_indices=keyframe_indices
+                        )
+                    else:
+                        tokens, global_idx, global_intermediates = self._process_global_as_frame_attention(
+                            tokens, B, S, P, C, global_idx, pos=pos
+                        )
                 else:
                     raise ValueError(f"Unknown attention type: {attn_type}")
 
@@ -317,6 +326,28 @@ class Aggregator(nn.Module):
                 tokens = checkpoint(self.global_blocks[global_idx], tokens, pos, pH=pH, pW=pW, patch_start_idx=patch_start_idx, keyframe_indices=keyframe_indices, use_reentrant=self.use_reentrant)
             else:
                 tokens = self.global_blocks[global_idx](tokens, pos=pos, pH=pH, pW=pW, patch_start_idx=patch_start_idx, keyframe_indices=keyframe_indices)
+            global_idx += 1
+            intermediates.append(tokens.view(B, S, P, C))
+
+        return tokens, global_idx, intermediates
+
+    def _process_global_as_frame_attention(self, tokens, B, S, P, C, global_idx, pos=None):
+        """
+        Process global attention blocks as frame attention. We keep tokens in shape (B*S, P, C).
+        """
+        if tokens.shape != (B * S, P, C):
+            tokens = tokens.view(B, S, P, C).view(B * S, P, C)
+
+        if pos is not None and pos.shape != (B * S, P, 2):
+            pos = pos.view(B, S, P, 2).view(B * S, P, 2)
+
+        intermediates = []
+
+        for _ in range(self.aa_block_size):
+            if self.training:
+                tokens = checkpoint(self.global_blocks[global_idx], tokens, pos, use_reentrant=self.use_reentrant)
+            else:
+                tokens = self.global_blocks[global_idx](tokens, pos=pos)
             global_idx += 1
             intermediates.append(tokens.view(B, S, P, C))
 

@@ -42,6 +42,8 @@ def parse_args():
     parser.add_argument(
         "--conf_threshold", type=float, default=40.0, help="Initial percentage of low-confidence points to filter out"
     )
+    parser.add_argument("--sample_rate", type=int, default=1, help="Sample rate of images to process")
+    parser.add_argument("--max_images", type=int, default=800, help="Maximum number of images to process")
     parser.add_argument("--mode", type=str, default="crop", help="Mode to process images")
     parser.add_argument("--seed", type=int, default=42, help="Seed for reproducibility")
     parser.add_argument(
@@ -50,7 +52,7 @@ def parse_args():
         default=10,
         help="Frame chunk size for FlashVGGTStream streaming inference (forward chunk_size)",
     )
-    parser.add_argument("--kv_downfactor", type=int, default=4, help="KV downfactor for FlashVGGT")
+    parser.add_argument("--kv_downfactor", type=int, default=3, help="KV downfactor for FlashVGGT")
     parser.add_argument("--keyframe_every", type=int, default=200, help="Keyframe interval for FlashVGGT")
     return parser.parse_args()
 
@@ -81,6 +83,7 @@ def main():
     print(f"Loading images from {args.image_folder}...")
     image_names = glob.glob(os.path.join(args.image_folder, "*" ))
     image_names = natsorted(image_names)
+    image_names = image_names[::args.sample_rate][:args.max_images]
     print(f"Found {len(image_names)} images")
     num_images = len(image_names)
 

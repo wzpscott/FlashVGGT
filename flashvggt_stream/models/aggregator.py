@@ -70,11 +70,15 @@ class Aggregator(nn.Module):
         rope_freq=100,
         init_values=0.01,
         intermediate_layer_idx=[4, 11, 17, 23],
-        kv_downfactor: int = 4
+        kv_downfactor: int = 3,
+        global_start_idx: int = 9,
+        global_end_idx: int = 19,
     ):
         super().__init__()
 
         self.kv_downfactor = kv_downfactor
+        self.global_start_idx = global_start_idx
+        self.global_end_idx = global_end_idx
 
         self.__build_patch_embed__(patch_embed, img_size, patch_size, num_register_tokens, embed_dim=embed_dim)
 
@@ -113,10 +117,10 @@ class Aggregator(nn.Module):
                     init_values=init_values,
                     qk_norm=qk_norm,
                     rope=self.rope,
-                    kv_downfactor=kv_downfactor,
-                    cache_kv=True,
+                    kv_downfactor=kv_downfactor if idx >= global_start_idx and idx <= global_end_idx else 1,
+                    cache_kv=True if idx >= global_start_idx and idx <= global_end_idx else False,
                 )
-                for _ in range(depth)
+                for idx in range(depth)
             ]
         )
 
@@ -192,17 +196,19 @@ class Aggregator(nn.Module):
             if hasattr(self.patch_embed, "mask_token"):
                 self.patch_embed.mask_token.requires_grad_(False)
 
-    def forward(self, images: torch.Tensor, is_first_chunk: bool = True, memory_drop_rate: int = 1) -> Tuple[List[torch.Tensor], int]:
+    def forward(self, images: torch.Tensor, is_first_chunk: bool = True, memory_drop_rate: int = 1, kv_cache_list=None) -> Tuple[List[torch.Tensor], int, Any]:
         """
         Args:
             images (torch.Tensor): Input images with shape [B, S, 3, H, W], in range [0, 1].
                 B: batch size, S: sequence length, 3: RGB channels, H: height, W: width
             is_first_chunk (bool): Indicates if this is the first chunk in a sequence.
+            kv_cache_list (list): List of KV caches from the previous chunk.
 
         Returns:
-            (list[torch.Tensor], int):
+            (list[torch.Tensor], int, list):
                 The list of outputs from the attention blocks,
-                and the patch_start_idx indicating where patch tokens begin.
+                the patch_start_idx indicating where patch tokens begin,
+                and the updated kv_cache_list.
         """
         B, S, C_in, H, W = images.shape
         pH, pW = H // self.patch_size, W // self.patch_size
@@ -247,6 +253,8 @@ class Aggregator(nn.Module):
         global_idx = 0
         current_idx = 0
         output_list = []
+        
+        new_kv_cache_list = [None] * len(self.global_blocks)
 
         for _ in range(self.aa_block_num):
             for attn_type in self.aa_order:
@@ -255,9 +263,14 @@ class Aggregator(nn.Module):
                         tokens, B, S, P, C, frame_idx, pos=pos
                     )
                 elif attn_type == "global":
-                    tokens, global_idx, global_intermediates = self._process_global_attention(
-                        tokens, B, S, P, C, global_idx, pos=pos, pH=pH, pW=pW, patch_start_idx=self.patch_start_idx, is_first_chunk=is_first_chunk, memory_drop_rate=memory_drop_rate
-                    )
+                    if self.global_start_idx <= global_idx <= self.global_end_idx:
+                        tokens, global_idx, global_intermediates = self._process_global_attention(
+                            tokens, B, S, P, C, global_idx, pos=pos, pH=pH, pW=pW, patch_start_idx=self.patch_start_idx, is_first_chunk=is_first_chunk, memory_drop_rate=memory_drop_rate, kv_cache_list=kv_cache_list, new_kv_cache_list=new_kv_cache_list
+                        )
+                    else:
+                        tokens, global_idx, global_intermediates = self._process_global_as_frame_attention(
+                            tokens, B, S, P, C, global_idx, pos=pos
+                        )
                 else:
                     raise ValueError(f"Unknown attention type: {attn_type}")
 
@@ -272,7 +285,7 @@ class Aggregator(nn.Module):
 
         del frame_intermediates
         del global_intermediates
-        return output_list, self.patch_start_idx
+        return output_list, self.patch_start_idx, new_kv_cache_list
 
     def _process_frame_attention(self, tokens, B, S, P, C, frame_idx, pos=None):
         """
@@ -298,7 +311,7 @@ class Aggregator(nn.Module):
 
         return tokens, frame_idx, intermediates
 
-    def _process_global_attention(self, tokens, B, S, P, C, global_idx, pos=None, pH=None, pW=None, patch_start_idx=None, is_first_chunk=False, memory_drop_rate=1):
+    def _process_global_attention(self, tokens, B, S, P, C, global_idx, pos=None, pH=None, pW=None, patch_start_idx=None, is_first_chunk=False, memory_drop_rate=1, kv_cache_list=None, new_kv_cache_list=None):
         """
         Process global attention blocks. We keep tokens in shape (B, S*P, C).
         """
@@ -312,10 +325,38 @@ class Aggregator(nn.Module):
 
         # by default, self.aa_block_size=1, which processes one block at a time
         for _ in range(self.aa_block_size):
+            current_kv = kv_cache_list[global_idx] if kv_cache_list is not None else None
             if self.training:
-                tokens = checkpoint(self.global_blocks[global_idx], tokens, pos, pH=pH, pW=pW, patch_start_idx=patch_start_idx, is_first_chunk=is_first_chunk, memory_drop_rate=memory_drop_rate, use_reentrant=self.use_reentrant)
+                tokens, new_kv = checkpoint(self.global_blocks[global_idx], tokens, pos=pos, pH=pH, pW=pW, patch_start_idx=patch_start_idx, is_first_chunk=is_first_chunk, memory_drop_rate=memory_drop_rate, kv_cache=current_kv, return_kv_cache=True, use_reentrant=self.use_reentrant)
             else:
-                tokens = self.global_blocks[global_idx](tokens, pos=pos, pH=pH, pW=pW, patch_start_idx=patch_start_idx, is_first_chunk=is_first_chunk, memory_drop_rate=memory_drop_rate)
+                tokens, new_kv = self.global_blocks[global_idx](tokens, pos=pos, pH=pH, pW=pW, patch_start_idx=patch_start_idx, is_first_chunk=is_first_chunk, memory_drop_rate=memory_drop_rate, kv_cache=current_kv, return_kv_cache=True)
+            
+            if new_kv_cache_list is not None:
+                new_kv_cache_list[global_idx] = new_kv
+                
+            global_idx += 1
+            intermediates.append(tokens.view(B, S, P, C))
+
+        return tokens, global_idx, intermediates
+
+    def _process_global_as_frame_attention(self, tokens, B, S, P, C, global_idx, pos=None):
+        """
+        Process global attention blocks as frame attention. We keep tokens in shape (B*S, P, C).
+        """
+        if tokens.shape != (B * S, P, C):
+            tokens = tokens.view(B, S, P, C).view(B * S, P, C)
+
+        if pos is not None and pos.shape != (B * S, P, 2):
+            pos = pos.view(B, S, P, 2).view(B * S, P, 2)
+
+        intermediates = []
+
+        for _ in range(self.aa_block_size):
+            if self.training:
+                tokens = checkpoint(self.global_blocks[global_idx], tokens, pos=pos, use_reentrant=self.use_reentrant)
+            else:
+                tokens = self.global_blocks[global_idx](tokens, pos=pos)
+            
             global_idx += 1
             intermediates.append(tokens.view(B, S, P, C))
 
