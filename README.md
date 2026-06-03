@@ -140,7 +140,7 @@ If you find our work useful, please cite:
 @inproceedings{wang2025flashvggt,
   title={FlashVGGT: Efficient and Scalable Visual Geometry Transformers with Compressed Descriptor Attention},
   author={Wang, Zipeng and Xu, Dan},
-  journal={Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition},
+  booktitle={Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)},
   year={2026}
 }
 ```
