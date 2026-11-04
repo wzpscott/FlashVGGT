@@ -110,7 +110,7 @@ class FlashVGGT(nn.Module, PyTorchModelHubMixin):
                 return ckpt["model"]
             return ckpt
 
-        ckpt = torch.load(ckpt_path)
+        ckpt = torch.load(ckpt_path, weights_only=True)
         state_dict = _checkpoint_to_state_dict(ckpt)
         self.load_state_dict(state_dict, strict=False)
 
